@@ -1,0 +1,40 @@
+h1. DBSlayer DataMapper Adapter
+
+DBSlayer is a HTTP-based front end for MySQL databases.  It allows you to abstract away your database layer over a fast,
+lightweight web server that speaks JSON.
+
+DBSlayer offers a lot of possibilities in high-load environments by centralizing all DB connections, improving failover and
+load balancing, and has many future possibilities centered around easy sharding, monitoring, and more.
+
+This module allows DataMapper to speak to a DBSlayer enabled database.  It is currently targeting DataMapper v0.9.
+
+h2. Code
+
+The code is available at Github:
+
+  git clone git://github.com/krobertson/dm-dbslayer.git
+
+To install it, just run the following:
+
+  rake install
+
+h2. Usage
+
+To set up the adapter, just use the following in your code:
+
+  DataMapper.setup(:default, 'dbslayer://localhost')
+
+You don't specify the database, as it is normally configured within DBSlayer itself.  You just need to configure the host.
+By default, it will use port 9090.
+
+If you are using a database.yml, you should use:
+
+  development:
+    adapter: dbslayer
+    host: localhost
+
+h2. Special Setup
+
+Currently, DBSlayer requires a patch to work properly with DataMapper.  By default, DBSlayer won't return the number
+of affected rows or insert ID for new records.  These are needed by DataMapper after creating a record, and to determine
+if a save operation succeeded.  The patch is included in the 'patch' directory.

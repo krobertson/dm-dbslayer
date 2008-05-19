@@ -1,0 +1,1 @@
+{"RESULT" : {"AFFECTED_ROWS" : 5 , "INSERT_ID" : 0 , "SUCCESS" : true} , "SERVER" : "localhost"}

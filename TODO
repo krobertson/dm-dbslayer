@@ -1,0 +1,9 @@
+TODO
+====
+
+* Add tests for parsing of return types like dates/times
+* Remove inheritance on MysqlAdapter and needing to load do_mysql
+* Add integration test with a live instance
+* Verify some sort of transaction support
+* Investigate adding support eventmachine requests
+* Make json/json_pure configurable, perhaps

@@ -1,0 +1,12 @@
+{"RESULT" : {"TYPES" : ["MYSQL_TYPE_LONG" , "MYSQL_TYPE_STRING" , "MYSQL_TYPE_STRING" , "MYSQL_TYPE_STRING" , "MYSQL_TYPE_LONG"] ,
+             "HEADER" : ["ID" , "Name" , "CountryCode" , "District" , "Population"] , 
+             "ROWS" : [[3793 , "New York" , "USA" , "New York" , 8008278] ,
+                       [3794 , "Los Angeles" , "USA" , "California" , 3694820] ,
+                       [3795 , "Chicago" , "USA" , "Illinois" , 2896016] ,
+                       [3796 , "Houston" , "USA" , "Texas" , 1953631] ,
+                       [3797 , "Philadelphia" , "USA" , "Pennsylvania" , 1517550] ,
+                       [3798 , "Phoenix" , "USA" , "Arizona" , 1321045] , 
+                       [3799 , "San Diego" , "USA" , "California" , 1223400] , 
+                       [3800 , "Dallas" , "USA" , "Texas" , 1188580] , 
+                       [3801 , "San Antonio" , "USA" , "Texas" , 1144646] , 
+                       [3802 , "Detroit" , "USA" , "Michigan" , 951270]]}}
