@@ -1,0 +1,110 @@
+Index: include/dbaccess.h
+===================================================================
+--- include/dbaccess.h	(revision 65)
++++ include/dbaccess.h	(working copy)
+@@ -16,6 +16,7 @@
+ typedef struct _db_handle_t { 
+ 	char *user;
+ 	char *pass;
++	char *database;
+ 	char *config;
+ 	char **server;
+ 	int server_count;
+@@ -25,7 +26,7 @@
+ 	apr_pool_t *mpool;
+ } db_handle_t;
+ 
+-db_handle_t * db_handle_init(const char *_user, const char *_pass, 
++db_handle_t * db_handle_init(const char *_user, const char *_pass, const char *_database,
+ 			const char *_server, const char *_config,void *userarg, int multidb);
+ void db_handle_destroy(db_handle_t *);
+ json_value * dbexecute(db_handle_t *dbh, json_value *injson, apr_pool_t *mpool);
+Index: db/dbaccess.c
+===================================================================
+--- db/dbaccess.c	(revision 65)
++++ db/dbaccess.c	(working copy)
+@@ -9,7 +9,7 @@
+ 			handle->db = mysql_init(NULL);
+ 			mysql_options(handle->db,MYSQL_READ_DEFAULT_FILE,handle->config);
+ 			mysql_options(handle->db,MYSQL_READ_DEFAULT_GROUP,handle->server[ct]);
+-			if(mysql_real_connect(handle->db,NULL,handle->user,handle->pass,NULL,0,NULL,CLIENT_MULTI_STATEMENTS) != NULL){
++			if(mysql_real_connect(handle->db,NULL,handle->user,handle->pass,handle->database,0,NULL,CLIENT_MULTI_STATEMENTS) != NULL){
+ 				handle->server_offset = ct;
+ 				return handle;
+ 			}
+@@ -19,7 +19,7 @@
+ 			handle->db = mysql_init(NULL);
+ 			mysql_options(handle->db,MYSQL_READ_DEFAULT_FILE,handle->config);
+ 			mysql_options(handle->db,MYSQL_READ_DEFAULT_GROUP,handle->server[ct]);
+-			if(mysql_real_connect(handle->db,NULL,handle->user,handle->pass,NULL,0,NULL,CLIENT_MULTI_STATEMENTS) != NULL){
++			if(mysql_real_connect(handle->db,NULL,handle->user,handle->pass,handle->database,0,NULL,CLIENT_MULTI_STATEMENTS) != NULL){
+ 				handle->server_offset = ct;
+ 				return handle;
+ 			}
+@@ -38,11 +38,12 @@
+ 	return NULL;
+ }
+ 
+-db_handle_t * db_handle_init(const char *_user, const char *_pass, const char *_server, const char *_config, void *userarg,int multidb){
++db_handle_t * db_handle_init(const char *_user, const char *_pass, const char *_database, const char *_server, const char *_config, void *userarg,int multidb){
+ 	db_handle_t *dbhandle= malloc(sizeof(db_handle_t));
+ 	//should then be defined in the config if the user/pass is NULL
+ 	dbhandle->user = _user ? strdup(_user) : NULL;
+ 	dbhandle->pass = _pass ? strdup(_pass) : NULL;
++	dbhandle->database = _database ? strdup(_database) : NULL;
+ 	dbhandle->config = strdup(_config);
+ 	dbhandle->db = NULL;
+ 	dbhandle->dblookup = NULL;
+@@ -345,17 +346,23 @@
+ 					if(sql_result && all_result ) { 
+ 						sql_result = json_object_create(mpool);
+ 						json_object_add(sql_result,"SUCCESS",json_boolean_create(mpool,1));
++						json_object_add(sql_result,"AFFECTED_ROWS",json_long_create(mpool,(long)mysql_affected_rows(db)));
++						json_object_add(sql_result,"INSERT_ID",json_long_create(mpool,(long)mysql_insert_id(db)));
+ 						json_array_append(all_result,sql_result);
+ 					} else if (sql_result && !all_result)  { 
+ 						all_result = json_array_create(mpool,5);
+ 						json_array_append(all_result,sql_result);
+ 						sql_result = json_object_create(mpool);
+ 						json_object_add(sql_result,"SUCCESS",json_boolean_create(mpool,1));
++						json_object_add(sql_result,"AFFECTED_ROWS",json_long_create(mpool,(long)mysql_affected_rows(db)));
++						json_object_add(sql_result,"INSERT_ID",json_long_create(mpool,(long)mysql_insert_id(db)));
+ 						json_array_append(all_result,sql_result);
+ 						json_object_add(out,"RESULT",all_result);
+ 					} else { 
+ 						sql_result = json_object_create(mpool);
+ 						json_object_add(sql_result,"SUCCESS",json_boolean_create(mpool,1));
++						json_object_add(sql_result,"AFFECTED_ROWS",json_long_create(mpool,(long)mysql_affected_rows(db)));
++						json_object_add(sql_result,"INSERT_ID",json_long_create(mpool,(long)mysql_insert_id(db)));
+ 					}
+ 				}
+ 			} else { 
+Index: server/dbslayer_server.c
+===================================================================
+--- server/dbslayer_server.c	(revision 65)
++++ server/dbslayer_server.c	(working copy)
+@@ -12,6 +12,7 @@
+ 	char *configure;
+ 	char *username;
+ 	char *password;
++	char *database;
+ } dbslayer_config_t;
+ 
+ void * db_global_init(apr_pool_t *pmpool, int argc, char **argv) {
+@@ -27,6 +28,7 @@
+ 				case 'u': config->username = apr_pstrdup(pmpool,argv[i+1]); break;
+ 				case 'x': config->password = apr_pstrdup(pmpool,argv[i+1]); break;
+ 				case 'm': config->multiserver= apr_pstrdup(pmpool,argv[i+1]); break;
++				case 'z': config->database = apr_pstrdup(pmpool,argv[i+1]); break;
+ 			}			
+ 		}
+ 	}
+@@ -42,7 +44,7 @@
+ void * db_thread_init(apr_pool_t *mpool, void *_global_config) {
+ 	dbslayer_config_t *config = (dbslayer_config_t*) _global_config;
+ 	unsigned int id =  apr_os_thread_current();
+-	return db_handle_init(config->username,config->password,config->multiserver == NULL ? config->server : config->multiserver,config->configure,&id,config->multiserver == NULL ? 0 : 1);
++	return db_handle_init(config->username,config->password,config->database,config->multiserver == NULL ? config->server : config->multiserver,config->configure,&id,config->multiserver == NULL ? 0 : 1);
+ }
+ void  db_thread_destroy(void *x) { 
+ 	db_handle_destroy((db_handle_t*)x);
