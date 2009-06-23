@@ -1,4 +1,5 @@
 require 'rubygems'
+require 'yajl/http_stream'
 require 'data_objects'
 require 'do_dbslayer/connection.rb'
 require 'do_dbslayer/command.rb'

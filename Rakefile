@@ -21,7 +21,7 @@ spec = Gem::Specification.new do |s|
   s.require_path     = 'lib'
   s.files            = FileList[ '{lib,spec}/**/*.rb', 'spec/spec.opts', 'Rakefile', *s.extra_rdoc_files ]
   s.add_dependency('dm-core', '= 0.9.0')
-  s.add_dependency('json_pure')
+  s.add_dependency('yajl-ruby')
 end
 
 task :default => [ :spec ]

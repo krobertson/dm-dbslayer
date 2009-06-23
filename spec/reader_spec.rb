@@ -2,11 +2,10 @@ require File.join(File.dirname(__FILE__), '/spec_helper')
 
 describe DataObjects::Dbslayer::Reader do
   before :all do
-    @reader_query = File.new(File.join(File.dirname(__FILE__), 'fixtures', 'reader_result.txt')).read
-    @types_query  = File.new(File.join(File.dirname(__FILE__), 'fixtures', 'types_test.txt')).read
-    @reader       = DataObjects::Dbslayer::Reader.new( JSON.parse(@reader_query)['RESULT'] )
-
-    @types_reader = DataObjects::Dbslayer::Reader.new( JSON.parse(@types_query)['RESULT'] )
+    @reader_query = File.new(File.join(File.dirname(__FILE__), 'fixtures', 'reader_result.txt'))
+    @types_query  = File.new(File.join(File.dirname(__FILE__), 'fixtures', 'types_test.txt'))
+    @reader       = DataObjects::Dbslayer::Reader.new( Yajl::Parser.parse(@reader_query)['RESULT'] )
+    @types_reader = DataObjects::Dbslayer::Reader.new( Yajl::Parser.parse(@types_query)['RESULT'] )
     @types_reader.next!
   end
 

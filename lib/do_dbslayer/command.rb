@@ -1,5 +1,4 @@
-require 'net/http'
-require 'json/pure'
+require 'uri'
 
 module DataObjects
   module Dbslayer
@@ -29,38 +28,35 @@ module DataObjects
       end
 
       def execute(args)
-        query = query_url(args)        
-        response = Net::HTTP.get_response(query.host, "#{query.path}?#{query.query}", query.port)
-
-        if response.is_a?(Net::HTTPSuccess)
-          dbresponse = JSON.parse(response.body)
-          
-          if dbresponse['MYSQL_ERROR']
-            raise DbslayerException, "MySQL Error #{dbresponse['MYSQL_ERRNO']}: #{dbresponse['MYSQL_ERROR']}"
-          elsif dbresponse['RESULT']
-            result = dbresponse['RESULT']
-            case result
-            when Hash
-              return result
-            when Array
-              result.map { |r| return r }
-            else  
-              raise DbslayerException, "Unknown format for SQL results from DBSlayer"
-            end
-          elsif dbresponse['SUCCESS']
-            return dbresponse['SUCCESS']
-          else
-            raise DbslayerException, "Unknown response type from DBSlayer"
+        uri = ::URI.parse(query_url(args).to_s)
+        dbresponse = Yajl::HttpStream.get(uri)
+        
+        if dbresponse['MYSQL_ERROR']
+          raise DbslayerException, "MySQL Error #{dbresponse['MYSQL_ERRNO']}: #{dbresponse['MYSQL_ERROR']}"
+        elsif dbresponse['RESULT']
+          result = dbresponse['RESULT']
+          case result
+          when Hash
+            return result
+          when Array
+            result.map { |r| return r }
+          else  
+            raise DbslayerException, "Unknown format for SQL results from DBSlayer"
           end
-
+        elsif dbresponse['SUCCESS']
+          return dbresponse['SUCCESS']
         else
-          raise DbslayerWebException, "Web error #{response.class}: #{response.body}"
+          raise DbslayerException, "Unknown response type from DBSlayer"
         end
+      rescue Yajl::ParseError => e
+        raise Yajl::ParseError, "JSON parsing error #{e.class}: #{e.message}"
+      rescue Exception => e
+        raise DbslayerWebException, "Web error #{e.class}: #{e.message}"
       end
 
       def query_url(args)
         sql = args.size > 0 ? escape_sql(args) : @text
-        query = URI.encode({ 'SQL' => sql }.to_json)
+        query = ::URI.encode(Yajl::Encoder.encode({ 'SQL' => sql }))
         Addressable::URI.parse("#{@connection.db_url}?#{query}")
       end
 

@@ -7,58 +7,50 @@ describe DataObjects::Dbslayer::Command do
     @connection   = DataObjects::Dbslayer::Connection.new('dbslayer://localhost')
   end
   
+  before(:each) do
+    @http_response = "HTTP/1.0 200 OK\r\n"
+    @http_response << "Vary: Accept-Encoding\r\n"
+    @http_response << "Content-Type: application/json\r\n"
+    @http_response << "Accept-Ranges: bytes\r\n"
+    @http_response << "Last-Modified: Thu, 30 Apr 2009 04:36:11 GMT\r\n"
+    @http_response << "Connection: close\r\n"
+    @http_response << "Date: Fri, 08 May 2009 06:21:36 GMT\r\n"
+    @http_response << "Server: lighttpd/1.4.22\r\n"
+  end
+  
   it 'should return a proper command type' do
     command = @connection.create_command 'FAKE QUERY'
     command.class.should == DataObjects::Dbslayer::Command
   end
 
   it 'should return proper result on a non-reader query' do
-    response = Net::HTTPOK.new('get', 200, 'found')
-    response.expects(:body).returns(@non_query)
-    Net::HTTP.expects(:get_response).returns(response)
-
+    @http_response << "Content-Length: #{@non_query.size}\r\n"
+    @http_response << "\r\n" # end of the headers
+    @http_response << @non_query
+    @http_response << "\r\n" # end of the response body
+    non_query = StringIO.new(@http_response)
+    TCPSocket.should_receive(:new).and_return(non_query)
+    non_query.should_receive(:write)
+    non_query.should_receive(:close)
     command = @connection.create_command('FAKE QUERY')
     result = command.execute_non_query
     result.affected_rows.should == 5
   end
 
   it 'should return a reader when executing a query' do
-    response = Net::HTTPOK.new('get', 200, 'found')
-    response.expects(:body).returns(@reader_query)
-    Net::HTTP.expects(:get_response).returns(response)
-
+    @http_response << "Content-Length: #{@non_query.size}\r\n"
+    @http_response << "\r\n" # end of the headers
+    @http_response << @reader_query
+    @http_response << "\r\n" # end of the response body
+    reader_query = StringIO.new(@http_response)
+    TCPSocket.should_receive(:new).and_return(reader_query)
+    reader_query.should_receive(:write)
+    reader_query.should_receive(:close)
     command = @connection.create_command('FAKE QUERY')
     result = command.execute_reader
     result.class.should == DataObjects::Dbslayer::Reader
   end
   
-  it 'should escape strings properly' do
-    command = @connection.create_command('FAKE QUERY ?')
-    query = command.escape_sql(['blah'])
-    query.should == "FAKE QUERY 'blah'"
-  end
-
-  it 'should escape dates properly' do
-    date = Date.parse('Sun May 18 16:22:47 -0700 2008')
-    command = @connection.create_command('FAKE QUERY ?')
-    query = command.escape_sql([date])
-    query.should == "FAKE QUERY '2008-05-18'"
-  end
-
-  it 'should escape times properly' do
-    time = Time.parse('Sun May 18 16:22:47 -0700 2008')
-    command = @connection.create_command('FAKE QUERY ?')
-    query = command.escape_sql([time])
-    query.should == "FAKE QUERY '2008-05-18 16:22:47'"
-  end
-
-  it 'should escape DateTimes properly' do
-    datetime = DateTime.parse('Sun May 18 16:22:47 -0700 2008')
-    command = @connection.create_command('FAKE QUERY ?')
-    query = command.escape_sql([datetime])
-    query.should == "FAKE QUERY '2008-05-18 16:22:47'"
-  end
-
   it 'should return an escaped query URL' do
     command = @connection.create_command('FAKE QUERY ?')
     query = command.query_url(['blah'])
